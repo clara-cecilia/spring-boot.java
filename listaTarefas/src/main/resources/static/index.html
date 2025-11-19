@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Tarefas (Simples)</title>
+</head>
+
+<body>
+
+    <h1>Minhas Tarefas</h1>
+
+    <form id="form-nova-tarefa">
+        <input type="text" id="input-titulo" placeholder="Título da tarefa" required>
+        <input type="text" id="input-descricao" placeholder="Descrição">
+        <button type="submit">Adicionar</button>
+    </form>
+
+    <ul id="lista-tarefas">
+    </ul>
+
+    <script>
+        const form = document.getElementById('form-nova-tarefa');
+        const inputTitulo = document.getElementById('input-titulo');
+        const inputDescricao = document.getElementById('input-descricao');
+        const listaUl = document.getElementById('lista-tarefas');
+
+        function carregarTarefas() {
+            fetch('/tarefas')
+                .then(response => response.json())
+                .then(tarefas => {
+                    listaUl.innerHTML = '';
+
+                    tarefas.forEach(tarefa => {
+                        const li = document.createElement('li');
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.checked = tarefa.concluida;
+                        checkbox.onclick = function () {
+                            atualizarTarefa(tarefa);
+                        };
+
+                        const spanTexto = document.createElement('span');
+                        spanTexto.textContent = `${tarefa.titulo} (${tarefa.descricao || 'Sem descrição'})`;
+
+                        if (tarefa.concluida) {
+                            spanTexto.classList.add('concluida');
+                        }
+
+                        const btnExcluir = document.createElement('button');
+                        btnExcluir.textContent = 'Excluir';
+                        btnExcluir.onclick = function () {
+                            excluirTarefa(tarefa.id);
+                        };
+
+                        li.appendChild(checkbox);
+                        li.appendChild(spanTexto);
+                        li.appendChild(btnExcluir);
+
+                        listaUl.appendChild(li);
+                    });
+                })
+                .catch(error => console.error('Erro ao carregar tarefas:', error));
+        }
+
+        form.onsubmit = function (event) {
+            event.preventDefault();
+
+            const novaTarefa = {
+                titulo: inputTitulo.value,
+                descricao: inputDescricao.value,
+                concluida: false
+            };
+
+            fetch('/tarefas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(novaTarefa)
+            })
+                .then(() => {
+                    inputTitulo.value = '';
+                    inputDescricao.value = '';
+                    carregarTarefas();
+                })
+                .catch(error => console.error('Erro ao criar tarefa:', error));
+        };
+
+        function atualizarTarefa(tarefa) {
+            const tarefaAtualizada = {
+                id: tarefa.id,
+                titulo: tarefa.titulo,
+                descricao: tarefa.descricao,
+                concluida: !tarefa.concluida
+            };
+
+            fetch(`/tarefas/${tarefa.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tarefaAtualizada)
+            })
+                .then(() => {
+                    carregarTarefas();
+                })
+                .catch(error => console.error('Erro ao atualizar tarefa:', error));
+        }
+
+        function excluirTarefa(id) {
+            fetch(`/tarefas/${id}`, {
+                method: 'DELETE'
+            })
+                .then(() => {
+                    carregarTarefas();
+                })
+                .catch(error => console.error('Erro ao excluir tarefa:', error));
+        }
+
+        carregarTarefas();
+    </script>
+
+</body>
+
+</html>
